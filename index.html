@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarkDown Presenter</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="title" content="Markdown Presenter" />
+    <meta
+      name="description"
+      content="A web app to present your Markdown files with style. Drag & drop .md files, load images, and present cleanly."
+    />
+
+    <link
+      id="theme-css"
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css"
+    />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png" />
+    <link rel="manifest" href="favicon_io/site.webmanifest" />
+    <link
+      id="hljs-theme"
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+    <style>
+      :root {
+        --sidebar-width: 250px;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background-color: #ffffff;
+        color: #000000;
+        display: flex;
+      }
+
+      body:not(.light-mode) {
+        background-color: #0d1117;
+        color: #c9d1d9;
+      }
+
+      .sidebar-toggle,
+      .theme-toggle {
+        position: fixed;
+        left: 10px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      .sidebar-toggle {
+        top: 10px;
+      }
+
+      .theme-toggle {
+        top: 50px;
+      }
+
+      .toc-panel {
+        width: var(--sidebar-width);
+        min-width: var(--sidebar-width);
+        padding: 1rem;
+        background-color: #161b22;
+        overflow-y: auto;
+        height: 100vh;
+        border-right: 1px solid #30363d;
+        transition: transform 0.3s ease;
+      }
+
+      .toc-hidden {
+        transform: translateX(-100%);
+      }
+
+      .toc-panel a {
+        display: block;
+        color: #58a6ff;
+        margin: 0.25rem 0;
+        text-decoration: none;
+      }
+
+      .markdown-body {
+        flex: 1;
+        padding: 2rem 1.5rem;
+        max-width: 80%;
+        overflow-wrap: break-word;
+        margin-left: 200px;
+      }
+
+      ::selection {
+        background: #fffb91;
+        color: #000;
+      }
+
+      body.light-mode ::selection {
+        background: #add6ff;
+        /* blue for light theme */
+        color: #000;
+      }
+
+      .laser-dot {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: red;
+        border-radius: 50%;
+        pointer-events: none;
+        animation: fadeOut 0.5s forwards;
+      }
+
+      .highlighted-text {
+        background-color: #fff176;
+        padding: 0.1em;
+        border-radius: 3px;
+        color: #000;
+      }
+
+      body.light-mode .highlighted-text {
+        background-color: #add6ff !important;
+        color: #000;
+      }
+
+      #tocModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      #tocModalContent {
+        max-width: 600px;
+        margin: auto;
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 2rem;
+        border-radius: 8px;
+        color: white;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      #tocModalContent a {
+        display: block;
+        color: #58a6ff;
+        margin: 0.4rem 0;
+        padding: 4px 8px;
+        text-decoration: none;
+        border-left: 2px solid transparent;
+      }
+
+      #tocModalContent a:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 2px solid #4b95ea;
+      }
+
+      #progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        width: 0%;
+        background: #30d707;
+        z-index: 9999;
+        transition: width 0.1s ease;
+      }
+
+      body.light-mode #progress-bar {
+        background: #f94764;
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: scale(6);
+        }
+      }
+
+      .presenter-mode .markdown-body > * {
+        display: none;
+      }
+
+      .presenter-visible {
+        display: block !important;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .presenter-mode .sidebar-toggle,
+      .presenter-mode .theme-toggle,
+      .presenter-mode .info-toggle,
+      .presenter-mode .load-md-toggle,
+      .presenter-mode .file-info,
+      .presenter-mode #tocModal {
+        display: none !important;
+      }
+
+      .info-toggle {
+        position: fixed;
+        left: 10px;
+        top: 95px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      #infoModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        color: white;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      #infoModalContent {
+        max-width: 600px;
+        margin: auto;
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 2rem;
+        border-radius: 8px;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .thank-you-slide {
+        text-align: center;
+        padding: 100px 20px;
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      body:not(.light-mode) .thank-you-slide h1,
+      body:not(.light-mode) .thank-you-slide h2 {
+        color: #58a6ff;
+      }
+
+      body.light-mode .thank-you-slide h1,
+      body.light-mode .thank-you-slide h2 {
+        color: #1f2937;
+      }
+
+      #thank-you-slide {
+        display: none;
+      }
+
+      .hidden-presenter {
+        display: none;
+      }
+
+      .presenter-mode .presenter-visible.hidden-presenter {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        min-height: 80vh;
+        font-size: 2rem;
+        line-height: 1.5;
+      }
+
+      .centered-h1 {
+        text-align: left;
+      }
+
+      .presenter-mode .presenter-visible.centered-h1 {
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        min-height: 90vh;
+        font-size: 5rem;
+        line-height: 1.4;
+        flex-direction: column;
+        overflow: unset;
+      }
+
+      #laserCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9998;
+        pointer-events: none;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .load-md-toggle {
+        position: fixed;
+        left: 10px;
+        top: 140px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      #loadModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      #loadModalContent {
+        max-width: 600px;
+        margin: auto;
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 2rem;
+        border-radius: 8px;
+        color: white;
+        text-align: center;
+      }
+      .fancy-btn {
+        background: linear-gradient(135deg, #8a2be2, #4b0082);
+        color: #ffd700;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+
+      .fancy-btn:hover {
+        transform: scale(1.05);
+        background: linear-gradient(135deg, #9b30ff, #5e11a8);
+      }
+
+      .red-btn {
+        background: linear-gradient(135deg, #ff4d4d, #cc0000);
+        color: #fff;
+      }
+
+      .red-btn:hover {
+        background: linear-gradient(135deg, #ff6666, #d10000);
+      }
+
+      .fancy-icon-btn {
+        position: fixed;
+        width: 160px;
+        /* justify-content: center; */
+        left: 10px;
+        background: linear-gradient(135deg, #8a2be2, #4b0082);
+        color: #ffd700;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .fancy-icon-btn:hover {
+        transform: scale(1.05);
+        background: linear-gradient(135deg, #9b30ff, #5e11a8);
+      }
+
+      .sidebar-toggle {
+        top: 10px;
+      }
+      .theme-toggle {
+        top: 60px;
+      }
+      .info-toggle {
+        top: 110px;
+      }
+      .load-md-toggle {
+        top: 160px;
+      }
+      #logo-placeholder {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.18;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      #logo-placeholder img {
+        max-width: 360px;
+        height: auto;
+        filter: none;
+      }
+
+      .file-info {
+        position: fixed;
+        top: 230px;
+        left: 10px;
+        color: #aaa;
+        font-size: 13px;
+        z-index: 1000;
+        max-width: 180px;
+        line-height: 1.4;
+      }
+
+      .drop-zone {
+        border: 2px dashed #8a2be2;
+        padding: 20px;
+        margin-top: 1rem;
+        border-radius: 10px;
+        transition: background 0.3s ease;
+      }
+
+      .drop-zone.dragover {
+        background: rgba(138, 43, 226, 0.1);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="progress-bar"></div>
+    <div
+      id="section-progress"
+      style="
+        position: fixed;
+        top: 6px;
+        right: 10px;
+        background: rgba(22, 27, 34, 0.85);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 9999;
+        display: none;
+        backdrop-filter: blur(5px);
+        border: 1px solid #30363d;
+      "
+    >
+      Section 0 / 0
+    </div>
+    <button class="fancy-icon-btn info-toggle" onclick="toggleInfo()">ℹ️ Info</button>
+
+    <div id="infoModal" onclick="toggleInfo()">
+      <div id="infoModalContent" onclick="event.stopPropagation()">
+        <h2>🧭 Features & Shortcuts</h2>
+        <ul>
+          <li><b>p</b>: Start Presenter Mode</li>
+          <li><b>p / →</b>: Next section (Presenter Mode)</li>
+          <li><b>o / ←</b>: Previous section (Presenter Mode)</li>
+          <li><b>Esc</b>: Exit Presenter Mode</li>
+          <li><b>l</b>: Toggle Laser Pointer</li>
+          <li><b>h</b>: Toggle Highlight Mode</li>
+        </ul>
+
+        <button id="introFileBtn" onclick="handleIntroFileBtn()" class="fancy-btn">
+          📄 Load Intro File
+        </button>
+
+        <p style="margin-top: 1rem; font-size: 14px; color: #999">
+          Click anywhere outside to close this window.
+        </p>
+        <p style="margin-top: 1rem; font-size: 14px; color: #f1e771">
+          Made with ❤️ by
+          <a
+            style="color: inherit; font-size: inherit; text-decoration: none; font-family: inherit"
+            href="https://www.linkedin.com/in/lakshygupta/"
+            target="_blank"
+            >Lakshy Gupta
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <button class="fancy-icon-btn load-md-toggle" onclick="toggleLoadModal()">
+      📂 Load Markdown
+    </button>
+
+    <div id="loadModal" onclick="toggleLoadModal()">
+      <div id="loadModalContent" onclick="event.stopPropagation()">
+        <h2>📂 Load Markdown File</h2>
+        <br />
+        <p>Drag and drop your markdown file here or click to select.</p>
+        <div id="dropZone" class="drop-zone">
+          <label for="mdInput" class="fancy-btn">📂 Choose Markdown File</label>
+          <input type="file" id="mdInput" accept=".md" style="display: none" />
+        </div>
+        <br />
+
+        <div id="imagePrompt" style="display: none; margin-top: 1.5rem; text-align: center">
+          <p style="font-size: 14px; color: #f1e771; margin-bottom: 10px">
+            📸 This markdown references local images. Would you like to upload the image folder?
+          </p>
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap">
+            <button id="uploadImagesBtn" class="fancy-btn">📁 Yes, Upload Image Folder</button>
+            <button id="skipImagesBtn" class="fancy-btn red-btn">
+              No, Continue Without Images
+            </button>
+          </div>
+        </div>
+
+        <div id="imageFolderUpload" style="margin-top: 1rem; display: none">
+          <label class="fancy-btn">
+            📁 Upload Image Folder
+            <input
+              type="file"
+              id="imageFolderInput"
+              accept="image/*"
+              webkitdirectory
+              multiple
+              style="display: none"
+            />
+          </label>
+          <br />
+          <p id="imageUploadHint" style="font-size: 13px; color: #ccc; margin-top: 1rem">
+            Select the folder that contains images like <code>images/login.png</code>
+          </p>
+        </div>
+
+        <p>
+          <button onclick="clearMarkdownFile()" class="fancy-btn red-btn">Clear & Reset</button>
+        </p>
+        <p id="fileError" style="color: #f87171; font-size: 14px"></p>
+      </div>
+    </div>
+
+    <div
+      id="mobileWarning"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #fffae6;
+        color: #000;
+        padding: 12px 16px;
+        font-size: 14px;
+        z-index: 9999;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      "
+    >
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span>⚠️ This website is best viewed on a desktop or laptop for full functionality.</span>
+        <button
+          onclick="document.getElementById('mobileWarning').style.display='none'"
+          style="background: transparent; border: none; font-size: 18px; cursor: pointer"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <button class="fancy-icon-btn sidebar-toggle" onclick="toggleSidebar()">☰ TOC</button>
+    <button class="fancy-icon-btn theme-toggle" onclick="toggleTheme()">🌓 Theme</button>
+    <!-- <aside id="toc" class="toc-panel"></aside> -->
+    <div id="tocModal" onclick="toggleSidebar()">
+      <div id="tocModalContent" onclick="event.stopPropagation()">
+        <h2 style="margin-top: 0">📚 Contents</h2>
+        <div id="toc"></div>
+        <p style="margin-top: 1rem; font-size: 14px; color: #999">
+          Click anywhere outside to close this window.
+        </p>
+      </div>
+    </div>
+    <div id="logo-placeholder">
+      <img src="logo-removebg.png" alt="Markdown Logo" />
+    </div>
+    <div id="fileInfo" class="file-info"></div>
+
+    <main class="markdown-body" id="viewer"></main>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script>
+      // Keep it at the top to ensure styles are applied immediately
+
+      document.body.classList.add("light-mode");
+      document.getElementById("theme-css").href =
+        "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css";
+      document.getElementById("hljs-theme").href =
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+      let laserMode = false;
+      let darkTheme = false;
+      let highlightMode = false;
+      const introFileName = "markdown_presenter.md";
+
+      (function initializeTheme() {
+        const themeCSS = document.getElementById("theme-css");
+        const hljsCSS = document.getElementById("hljs-theme");
+        const storedTheme = localStorage.getItem("theme");
+
+        if (storedTheme === "dark") {
+          document.body.classList.remove("light-mode");
+          themeCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css";
+          hljsCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+          darkTheme = true;
+        } else {
+          document.body.classList.add("light-mode");
+          themeCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css";
+          hljsCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+          darkTheme = false;
+        }
+      })();
+
+      function toggleSidebar() {
+        const tocModal = document.getElementById("tocModal");
+        const isOpen = tocModal.style.display === "block";
+
+        if (!isOpen) {
+          generateTOC(); // ⬅️ Ensure TOC is always fresh before opening
+          tocModal.style.display = "block";
+        } else {
+          tocModal.style.display = "none";
+        }
+      }
+
+      window.addEventListener("scroll", () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        document.getElementById("progress-bar").style.width = `${scrollPercent}%`;
+      });
+
+      function toggleTheme() {
+        const themeCSS = document.getElementById("theme-css");
+        const hljsCSS = document.getElementById("hljs-theme");
+
+        if (darkTheme) {
+          document.body.style.backgroundColor = "#ffffff";
+          document.body.style.color = "#000000";
+          document.body.classList.add("light-mode");
+          themeCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css";
+          hljsCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+          localStorage.setItem("theme", "light");
+        } else {
+          document.body.style.backgroundColor = "#0d1117";
+          document.body.style.color = "#c9d1d9";
+          document.body.classList.remove("light-mode");
+          themeCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css";
+          hljsCSS.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+          localStorage.setItem("theme", "dark");
+        }
+
+        darkTheme = !darkTheme;
+
+        if (!localStorage.getItem("markdownContent")) {
+          document.getElementById("logo-placeholder").style.display = "block";
+        }
+      }
+
+      async function loadMarkdown(markdown) {
+        const logo = document.getElementById("logo-placeholder");
+        if (logo) logo.style.display = "none";
+
+        const html = marked.parse(markdown, {
+          highlight: (code, lang) => hljs.highlightAuto(code).value,
+          langPrefix: "language-",
+        });
+
+        const thankYouSlide = `
+            <section class="thank-you-slide hidden-presenter">
+            <h1>Thank You!</h1>
+            <h2>Q n A</h2>
+            </section>`;
+
+        document.getElementById("viewer").innerHTML = html + thankYouSlide;
+
+        const firstH1 = document.querySelector("#viewer h1");
+        if (firstH1) firstH1.classList.add("centered-h1");
+
+        document.querySelectorAll("pre code").forEach((block) => hljs.highlightElement(block));
+        generateTOC();
+      }
+
+      async function loadFromStorageOrBlank() {
+        const savedMd = localStorage.getItem("markdownContent");
+        const filename = localStorage.getItem("markdownFilename");
+        const timestamp = localStorage.getItem("markdownTimestamp");
+
+        const viewer = document.getElementById("viewer");
+
+        if (savedMd) {
+          const parsed = await replaceImagePaths(savedMd);
+          loadMarkdown(parsed);
+          updateFileInfo(filename || "Untitled.md", savedMd);
+          document.getElementById("logo-placeholder").style.display = "none";
+        } else {
+          viewer.innerHTML = `
+            <p style="text-align: center;">
+                No Markdown file selected. Use
+                <span
+                onclick="toggleLoadModal()"
+                style="color: #58a6ff; cursor: pointer;">
+                📁Load Markdown
+                </span>
+                to get started
+            </p>
+            `;
+
+          document.getElementById("logo-placeholder").style.display = "block";
+        }
+      }
+
+      loadFromStorageOrBlank();
+
+      function toggleLoadModal() {
+        const modal = document.getElementById("loadModal");
+        modal.style.display = modal.style.display === "block" ? "none" : "block";
+
+        const errorEl = document.getElementById("fileError");
+        errorEl.textContent = "";
+      }
+
+      document.getElementById("mdInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        const errorEl = document.getElementById("fileError");
+
+        if (!file) {
+          errorEl.textContent = "";
+          return;
+        }
+
+        if (!file.name.endsWith(".md")) {
+          errorEl.textContent = "❌ Only .md files are allowed.";
+          e.target.value = ""; // clear invalid file
+          return;
+        }
+
+        errorEl.textContent = "";
+
+        const reader = new FileReader();
+        reader.onload = async function (event) {
+          const content = event.target.result;
+          localStorage.setItem("markdownContent", content);
+          localStorage.setItem("markdownFilename", file.name);
+          localStorage.setItem("markdownTimestamp", new Date().toISOString());
+
+          const localImages = [...content.matchAll(/!\[.*?\]\((?!https?:\/\/)(.*?)\)/g)].map(
+            (m) => m[1]
+          );
+          const videos = [...content.matchAll(/!\[.*?\]\((.*?\.(mp4|webm|mov))\)/gi)];
+
+          if (videos.length) {
+            errorEl.textContent =
+              "⚠️ Video File(s) Detected. Please upload videos to a public hosting service (e.g., YouTube, Vimeo, Google Drive) and replace the video path in your markdown with the hosted URL.";
+            e.target.value = ""; // clear invalid file
+            clearMarkdownFileWithoutReload();
+            return;
+          }
+
+          if (localImages.length > 0) {
+            window.tempMarkdown = content;
+            window.tempImages = localImages;
+            showPromptForImages(content, localImages);
+          } else {
+            const replaced = await replaceImagePaths(content);
+            loadMarkdown(replaced);
+            toggleLoadModal();
+            updateFileInfo(file.name, content);
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById("imageFolderInput").addEventListener("change", async function (e) {
+        const files = Array.from(e.target.files);
+        const referencedImages = window.tempImages || [];
+        await handleImageFolderUpload(files, referencedImages);
+      });
+
+      function updateFileInfo(filename, content) {
+        const displayName = truncateMiddle(filename);
+        const wordCount = content.split(/\s+/).filter(Boolean).length;
+        const time = new Date().toLocaleDateString();
+
+        const info = `
+            📄 <strong>${displayName}</strong><br>
+            📝 ${wordCount} words<br>
+            🕘 Loaded on: ${time}
+        `;
+
+        const el = document.getElementById("fileInfo");
+        if (el) el.innerHTML = info;
+      }
+
+      async function clearMarkdownFile() {
+        localStorage.removeItem("markdownContent");
+        localStorage.removeItem("markdownFilename");
+        localStorage.removeItem("markdownTimestamp");
+        await clearAllImagesFromDB();
+        location.reload();
+      }
+
+      async function clearMarkdownFileWithoutReload() {
+        localStorage.removeItem("markdownContent");
+        localStorage.removeItem("markdownFilename");
+        localStorage.removeItem("markdownTimestamp");
+      }
+
+      function generateTOC() {
+        const viewer = document.getElementById("viewer");
+        const toc = document.getElementById("toc");
+        toc.innerHTML = "";
+        const headings = viewer.querySelectorAll("h1, h2, h3, h4, h5, h6");
+
+        let currentSection = null;
+
+        headings.forEach((el, i) => {
+          if (el.closest(".thank-you-slide")) return;
+
+          const level = parseInt(el.tagName[1]);
+          const id = "heading-" + i;
+          el.id = id;
+
+          const link = document.createElement("a");
+          link.href = "#" + id;
+          link.textContent = el.textContent;
+          link.style.marginLeft = (level - 1) * 20 + "px";
+
+          if (level <= 2) {
+            toc.appendChild(link);
+            currentSection = document.createElement("div");
+            currentSection.className = "toc-subgroup";
+            toc.appendChild(currentSection);
+          } else if (currentSection) {
+            const subLink = document.createElement("a");
+            subLink.href = "#" + id;
+            subLink.textContent = el.textContent;
+            subLink.style.marginLeft = (level - 1) * 20 + "px";
+            currentSection.appendChild(subLink);
+          }
+        });
+
+        document.querySelectorAll(".toc-subgroup").forEach((group, index) => {
+          if (group.children.length > 0) {
+            const toggle = document.createElement("a");
+            toggle.href = "javascript:void(0)";
+            toggle.textContent = "🔽 Show more";
+            toggle.style.margin = "4px 0";
+            toggle.style.marginLeft = "40px";
+            toggle.style.display = "block";
+            toggle.style.color = "#999";
+            toggle.style.fontSize = "12px";
+
+            let visible = false;
+            toggle.onclick = () => {
+              visible = !visible;
+              [...group.children].forEach((el) => {
+                el.style.display = visible ? "block" : "none";
+              });
+              toggle.textContent = visible ? "🔼 Hide details" : "🔽 Show more";
+            };
+
+            [...group.children].forEach((el) => {
+              el.style.display = "none";
+            });
+
+            group.parentNode.insertBefore(toggle, group);
+          }
+        });
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "l") laserMode = !laserMode;
+        if (e.key === "h") {
+          highlightMode = !highlightMode;
+          if (!highlightMode) {
+            document.querySelectorAll(".highlighted-text").forEach((span) => {
+              const parent = span.parentNode;
+              parent.replaceChild(document.createTextNode(span.textContent), span);
+              parent.normalize();
+            });
+          }
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (!highlightMode) return;
+        const selection = window.getSelection();
+        if (selection.toString().length > 0) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement("span");
+          span.className = "highlighted-text";
+          range.surroundContents(span);
+          selection.removeAllRanges();
+        }
+      });
+
+      function toggleInfo() {
+        const modal = document.getElementById("infoModal");
+        modal.style.display = modal.style.display === "block" ? "none" : "block";
+
+        const introBtn = document.getElementById("introFileBtn");
+        const currentFile = localStorage.getItem("markdownFilename");
+        if (currentFile == introFileName) {
+          introBtn.textContent = "🗑️ Clear Intro File ";
+        } else {
+          introBtn.textContent = "🔄 Load Intro File (Clears Current) ";
+        }
+      }
+
+      function handleIntroFileBtn() {
+        const currentFile = localStorage.getItem("markdownFilename");
+        if (currentFile === introFileName) {
+          clearMarkdownFileWithoutReload();
+          localStorage.setItem("loadIntroFile", "false");
+          location.reload();
+        } else {
+          clearMarkdownFileWithoutReload();
+          localStorage.setItem("loadIntroFile", "true");
+          location.reload();
+        }
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!laserMode) return;
+        const dot = document.createElement("div");
+        dot.className = "laser-dot";
+        dot.style.left = `${e.pageX - 6}px`;
+        dot.style.top = `${e.pageY - 6}px`;
+        document.body.appendChild(dot);
+        setTimeout(() => dot.remove(), 500);
+      });
+
+      let presenterMode = false;
+      let presenterIndex = 0;
+      let presenterSections = [];
+
+      function togglePresenterMode() {
+        presenterMode = !presenterMode;
+        document.body.classList.toggle("presenter-mode", presenterMode);
+        if (presenterMode) {
+          if (!document.querySelector(".thank-you-slide")) {
+            const thankYou = document.createElement("section");
+            thankYou.id = "thank-you-slide";
+            thankYou.className = "thank-you-slide hidden-presenter";
+            thankYou.innerHTML = `
+                        <h1>Thank You!</h1>
+                        <h2>Q n A</h2>
+                    `;
+            document.getElementById("viewer").appendChild(thankYou);
+          }
+
+          presenterSections = Array.from(
+            document.querySelectorAll("#viewer h1, #viewer h2, .thank-you-slide")
+          ).slice(0, -2);
+          showPresenterSection(0);
+        } else {
+          // Exit logic
+          // 1. Reset scroll progress bar
+          document.getElementById("progress-bar").style.width = "0%";
+
+          // 2. Remove Thank You slide if it exists
+          const thankYou = document.querySelector(".thank-you-slide");
+          if (thankYou) thankYou.remove();
+
+          // 3. Clear presenter-visible classes
+          document
+            .querySelectorAll(".presenter-visible")
+            .forEach((el) => el.classList.remove("presenter-visible"));
+        }
+        document.getElementById("section-progress").style.display = presenterMode
+          ? "block"
+          : "none";
+      }
+
+      function showPresenterSection(index) {
+        if (!presenterSections.length) return;
+        presenterIndex = Math.max(0, Math.min(index, presenterSections.length - 1));
+
+        // Hide all
+        document
+          .querySelectorAll(".presenter-visible")
+          .forEach((el) => el.classList.remove("presenter-visible"));
+
+        // Show from heading till next heading
+        const current = presenterSections[presenterIndex];
+        current.classList.add("presenter-visible");
+        let next = current.nextElementSibling;
+        while (next && !presenterSections.includes(next)) {
+          next.classList.add("presenter-visible");
+          next = next.nextElementSibling;
+        }
+
+        // Scroll to top for clean view
+        window.scrollTo({ top: 0 });
+
+        // Reset scroll progress bar
+        document.getElementById("progress-bar").style.width = "0%";
+
+        // Update progress counter
+        const progressDisplay = document.getElementById("section-progress");
+        progressDisplay.style.display = "block";
+        progressDisplay.textContent = `Section ${presenterIndex + 1} / ${presenterSections.length}`;
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "p") {
+          if (!presenterMode) {
+            togglePresenterMode();
+          } else {
+            showPresenterSection(presenterIndex + 1); // next section
+          }
+        }
+
+        if (presenterMode) {
+          if (e.key === "ArrowRight") {
+            showPresenterSection(presenterIndex + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "o") {
+            showPresenterSection(presenterIndex - 1);
+          } else if (e.key === "Escape") {
+            togglePresenterMode(); // exit
+          }
+        }
+      });
+
+      const dropZone = document.getElementById("dropZone");
+      const mdInput = document.getElementById("mdInput");
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove("dragover");
+        });
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          handleMarkdownFile(file);
+        }
+      });
+
+      function handleMarkdownFile(file) {
+        const errorEl = document.getElementById("fileError");
+
+        if (!file.name.endsWith(".md")) {
+          errorEl.textContent = "❌ Only .md files are allowed.";
+          return;
+        }
+
+        errorEl.textContent = "";
+
+        const reader = new FileReader();
+        reader.onload = async function (event) {
+          const content = event.target.result;
+          localStorage.setItem("markdownContent", content);
+          localStorage.setItem("markdownFilename", file.name);
+          localStorage.setItem("markdownTimestamp", new Date().toISOString());
+
+          const localImages = [...content.matchAll(/!\[.*?\]\((?!https?:\/\/)(.*?)\)/g)].map(
+            (m) => m[1]
+          );
+          const videos = [...content.matchAll(/!\[.*?\]\((.*?\.(mp4|webm|mov))\)/gi)];
+
+          if (videos.length) {
+            alert(
+              "⚠️ Detected local video file in markdown. Please host the video online and paste the video URL in markdown (e.g., YouTube, Vimeo, or cloud storage link)."
+            );
+          }
+
+          if (localImages.length > 0) {
+            window.tempMarkdown = content;
+            window.tempImages = localImages;
+            showPromptForImages(content, localImages);
+          } else {
+            const replaced = await replaceImagePaths(content);
+            loadMarkdown(replaced);
+            toggleLoadModal();
+            updateFileInfo(file.name, content);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      let imageBlobMap = {};
+
+      function showPromptForImages(markdown, imagePaths) {
+        const imagePrompt = document.getElementById("imagePrompt");
+        const uploadSection = document.getElementById("imageFolderUpload");
+        imagePrompt.style.display = "block";
+        uploadSection.style.display = "none";
+
+        // Continue without images
+        document.getElementById("skipImagesBtn").onclick = () => {
+          imagePrompt.style.display = "none";
+          loadMarkdown(markdown);
+          toggleLoadModal();
+          updateFileInfo(localStorage.getItem("markdownFilename"), markdown);
+        };
+
+        // Proceed to image upload
+        document.getElementById("uploadImagesBtn").onclick = () => {
+          imagePrompt.style.display = "none";
+          uploadSection.style.display = "block";
+
+          const imgInput = document.getElementById("imageFolderInput");
+
+          imgInput.onchange = () => {
+            const files = imgInput.files;
+            const imageBlobMap = {};
+
+            for (let file of files) {
+              const relPath = file.webkitRelativePath || file.name;
+              const cleanRel = relPath.replace(/^\.?\//, "").trim();
+              const fileName = file.name;
+
+              imageBlobMap[cleanRel] = URL.createObjectURL(file);
+              imageBlobMap[fileName] = URL.createObjectURL(file);
+            }
+
+            const updatedMd = markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+              const cleanedSrc = src.replace(/^\.?\//, "").trim();
+              const fallback = cleanedSrc.split("/").pop();
+              const blobUrl = imageBlobMap[cleanedSrc] || imageBlobMap[fallback];
+              if (blobUrl) {
+                return `![${alt}](${blobUrl})`;
+              }
+              return match;
+            });
+
+            uploadSection.style.display = "none";
+            imgInput.value = "";
+
+            loadMarkdown(updatedMd);
+            toggleLoadModal();
+            updateFileInfo(localStorage.getItem("markdownFilename"), updatedMd);
+            toggleLoadModal();
+          };
+
+          imgInput.click();
+        };
+      }
+
+      function promptForImages(markdown, imagePaths) {
+        if (
+          !confirm(
+            `📷 Detected ${imagePaths.length} local image(s) in your markdown.\nWould you like to upload the image folder now? Click "Cancel" to continue without images.`
+          )
+        ) {
+          loadMarkdown(markdown);
+          toggleLoadModal();
+          updateFileInfo(localStorage.getItem("markdownFilename"), markdown);
+          return;
+        }
+
+        const imgInput = document.createElement("input");
+        imgInput.type = "file";
+        imgInput.accept = "image/*";
+        imgInput.multiple = true;
+
+        imgInput.onchange = () => {
+          const files = imgInput.files;
+          imageBlobMap = {};
+
+          for (let file of files) {
+            imageBlobMap[file.name] = URL.createObjectURL(file);
+          }
+
+          // Replace markdown image src with blob URL if file name matches
+          const updatedMd = markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+            const fileName = src.split("/").pop();
+            if (imageBlobMap[fileName]) {
+              return `![${alt}](${imageBlobMap[fileName]})`;
+            }
+            return match;
+          });
+
+          loadMarkdown(updatedMd);
+          toggleLoadModal();
+          updateFileInfo(localStorage.getItem("markdownFilename"), updatedMd);
+        };
+
+        imgInput.click();
+      }
+
+      function showImageUploadOption(imagePaths, markdown) {
+        const uploadSection = document.getElementById("imageFolderUpload");
+        uploadSection.style.display = "block";
+
+        const imgInput = document.getElementById("imgFolderInput");
+
+        imgInput.onchange = () => {
+          const files = imgInput.files;
+          const imageBlobMap = {};
+
+          // Build map of both relative paths and filenames
+          for (let file of files) {
+            const relPath = file.webkitRelativePath || file.name;
+            const cleanRel = relPath.replace(/^\.?\//, "").trim();
+            const fileName = file.name;
+
+            imageBlobMap[cleanRel] = URL.createObjectURL(file);
+            imageBlobMap[fileName] = URL.createObjectURL(file);
+          }
+
+          // Replace local image links in markdown with blob URLs
+          const updatedMd = markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+            const cleanedSrc = src.replace(/^\.?\//, "").trim();
+            const fallback = cleanedSrc.split("/").pop();
+            const blobUrl = imageBlobMap[cleanedSrc] || imageBlobMap[fallback];
+
+            if (blobUrl) {
+              return `![${alt}](${blobUrl})`;
+            }
+
+            return match;
+          });
+
+          loadMarkdown(updatedMd);
+          toggleLoadModal();
+          updateFileInfo(localStorage.getItem("markdownFilename"), updatedMd);
+
+          uploadSection.style.display = "none";
+          imgInput.value = "";
+        };
+      }
+
+      let imageMap = {};
+
+      async function handleImageFolderUpload(folderFiles, referencedPaths) {
+        const fileMap = new Map();
+        for (const file of folderFiles) {
+          fileMap.set(file.name, file);
+        }
+
+        for (const path of referencedPaths) {
+          const fileName = path.split("/").pop();
+          if (fileMap.has(fileName)) {
+            const file = fileMap.get(fileName);
+            const base64 = await toBase64(file);
+            await saveImageToDB(fileName, base64);
+          }
+        }
+
+        const replaced = await replaceImagePaths(window.tempMarkdown);
+        loadMarkdown(replaced);
+        toggleLoadModal();
+        updateFileInfo(localStorage.getItem("markdownFilename"), window.tempMarkdown);
+      }
+
+      function toBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result); // includes data:image/png;base64,...
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function replaceImagePaths(content) {
+        if (typeof content !== "string") return "";
+
+        const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
+        const matches = [...content.matchAll(imageRegex)];
+
+        if (matches.length === 0) {
+          return content;
+        }
+
+        return await content.replaceAllAsync(imageRegex, async (match, alt, path) => {
+          const fileName = path.split("/").pop();
+          const base64 = await getImageFromDB(fileName);
+          return base64 ? `![${alt}](${base64})` : match;
+        });
+      }
+
+      function truncateMiddle(filename, maxLength = 20) {
+        if (filename.length <= maxLength) return filename;
+        const keep = Math.floor((maxLength - 3) / 2);
+        return filename.slice(0, keep) + "..." + filename.slice(-keep);
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const markdown = localStorage.getItem("markdownContent");
+        const fileName = localStorage.getItem("markdownFilename");
+
+        if (!localStorage.getItem("theme")) {
+          localStorage.setItem("theme", "dark");
+          toggleTheme();
+        }
+
+        if (localStorage.getItem("loadIntroFile") === null) {
+          localStorage.setItem("loadIntroFile", "true");
+        }
+
+        const loadIntroFile = localStorage.getItem("loadIntroFile");
+
+        if (markdown && fileName) {
+          const updated = await replaceImagePaths(markdown);
+          loadMarkdown(updated);
+          updateFileInfo(fileName, updated);
+          return;
+        }
+
+        if (loadIntroFile == "true") {
+          fetch("./markdown_presenter.md")
+            .then((res) => res.text())
+            .then(async (content) => {
+              localStorage.setItem("markdownContent", content);
+              localStorage.setItem("markdownFilename", introFileName);
+              localStorage.setItem("markdownTimestamp", new Date().toISOString());
+
+              const updated = await replaceImagePaths(content);
+              loadMarkdown(updated);
+              updateFileInfo(introFileName, updated);
+            })
+            .catch((err) => {
+              console.error("Failed to load default markdown:", err);
+            });
+        }
+
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile) {
+          document.getElementById("mobileWarning").style.display = "block";
+        }
+      });
+
+      String.prototype.replaceAllAsync = async function (regex, asyncFn) {
+        const matches = [...this.matchAll(regex)];
+        const replacements = await Promise.all(matches.map((m) => asyncFn(...m)));
+        let result = this;
+        matches.forEach((m, i) => {
+          result = result.replace(m[0], replacements[i]);
+        });
+        return result;
+      };
+
+      // IndexedDB Util for storing images
+      const dbName = "MarkdownImageStore";
+      const storeName = "images";
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(dbName, 1); // version 1
+
+          request.onupgradeneeded = function (event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+              db.createObjectStore(storeName);
+            }
+          };
+
+          request.onsuccess = function () {
+            resolve(request.result);
+          };
+
+          request.onerror = function () {
+            reject(request.error);
+          };
+        });
+      }
+
+      async function saveImageToDB(filename, base64Data) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, "readwrite");
+          const store = tx.objectStore(storeName);
+          const request = store.put(base64Data, filename);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function getImageFromDB(filename) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, "readonly");
+          const store = tx.objectStore(storeName);
+          const request = store.get(filename);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function clearAllImagesFromDB() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, "readwrite");
+          const store = tx.objectStore(storeName);
+          const clearRequest = store.clear();
+
+          clearRequest.onsuccess = () => {
+            tx.oncomplete = () => resolve();
+          };
+
+          clearRequest.onerror = (e) => {
+            reject(e);
+          };
+        });
+      }
+    </script>
+  </body>
+</html>
