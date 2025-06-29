@@ -225,11 +225,11 @@ Thanks for using mdppt! If you have questions, feedback, or just want to connect
 
 ### 💌 Get in Touch
 
-- 🐛 **Found a bug?** Report it on GitHub
-- 💡 **Have an idea?** I'd love to hear it!
-- ⭐ **Enjoying mdppt?** Star the project on GitHub
+- 🐛 **Found a bug?** Report it on [GitHub](https://github.com/lakshygupta/markdown-presenter)
+- 💡 **Have an idea?** I'd love to hear it! Create an issue [here](https://github.com/lakshygupta/markdown-presenter/issues)
+- ⭐ **Enjoying mdppt?** Star the [project on GitHub](https://github.com/lakshygupta/markdown-presenter)
 - 🤝 **Want to collaborate?** Let's connect on LinkedIn
 
 ```java
-Made with ❤️ by Lakshy Gupta | 2025 mdppt
+Made with ❤️ by Lakshy Gupta | mdppt
 ```
