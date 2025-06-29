@@ -1,9 +1,7 @@
-<table>
-<tr>
-<td><img src="./logo.png" alt="mdppt Logo" width="60" height="60"></td>
-<td><h1>mdppt - Markdown Presenter</h1></td>
-</tr>
-</table>
+<div align="center">
+  <img src="./logo-removebg.png" alt="mdppt Logo" width="60" height="60">
+  <h1>mdppt - Markdown Presenter</h1>
+</div>
 
 🚀 Transform your markdown files into presentations instantly!
 
@@ -12,6 +10,8 @@ A powerful, client-side markdown to presentation converter that runs entirely in
 ## 🎥 Demo Video
 
 📺 See mdppt in action! Watch our demo video to learn how to create presentations in minutes:
+
+[▶️ **Watch Demo Video**](https://github.com/user-attachments/assets/344f9ac3-7087-41e5-89a9-57ecb39e40a6)
 
 ## ✨ Key Features
 
