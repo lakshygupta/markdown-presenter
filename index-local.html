@@ -91,9 +91,9 @@
       .markdown-body {
         flex: 1;
         padding: 2rem 1.5rem;
-        max-width: 80%;
+        max-width: 85%;
         overflow-wrap: break-word;
-        margin-left: 200px;
+        margin-left: 90px;
       }
 
       ::selection {
@@ -390,7 +390,7 @@
 
       .fancy-icon-btn {
         position: fixed;
-        width: 160px;
+        width: 95px;
         /* justify-content: center; */
         left: 10px;
         background: linear-gradient(135deg, #8a2be2, #4b0082);
@@ -530,9 +530,9 @@
         </p>
       </div>
     </div>
-    <div id="logo-placeholder">
+    <!-- <div id="logo-placeholder">
       <img src="logo-removebg.png" alt="Markdown Logo" />
-    </div>
+    </div> -->
     <div id="fileInfo" class="file-info"></div>
 
     <main class="markdown-body" id="viewer"></main>
@@ -616,10 +616,6 @@
         }
 
         darkTheme = !darkTheme;
-
-        if (!localStorage.getItem("markdownContent")) {
-          document.getElementById("logo-placeholder").style.display = "block";
-        }
       }
 
       fetch("./markdown_presenter.md") // Change this to your markdown file make sure images are referenced correctly
@@ -636,9 +632,6 @@
             },
             langPrefix: "language-",
           });
-
-          const logo = document.getElementById("logo-placeholder");
-          if (logo) logo.style.display = "none";
 
           const thankYouSlide = `
                 <section class="thank-you-slide hidden-presenter">
