@@ -7,10 +7,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="title" content="Markdown Presenter" />
+    <meta name="author" content="Lakshy Gupta" />
     <meta
       name="description"
       content="A web app to present your Markdown files with style. Drag & drop .md files, load images, and present cleanly."
     />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <meta http-equiv="pragma" content="no-cache" />
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q7CMS5V779"></script>
@@ -42,6 +46,7 @@
     <style>
       :root {
         --sidebar-width: 250px;
+        --top-nav-height: 60px;
       }
 
       body {
@@ -50,6 +55,8 @@
         background-color: #ffffff;
         color: #000000;
         display: flex;
+        flex-direction: column;
+        padding-top: var(--top-nav-height);
       }
 
       body:not(.light-mode) {
@@ -78,6 +85,68 @@
         top: 50px;
       }
 
+      /* Top Navigation Bar */
+      .top-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--top-nav-height);
+        background: rgba(39, 46, 56, 0.3);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        box-sizing: border-box;
+        z-index: 1000;
+      }
+
+      .top-nav img {
+        margin-right: 20px;
+      }
+
+      .top-nav-btns {
+        display: flex;
+        justify-content: center;
+        flex: 1;
+        gap: 10px;
+      }
+
+      .top-nav-btn {
+        background: linear-gradient(135deg, #8a2be2, #4b0082);
+        color: #ffd700;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 15px;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .top-nav-btn:hover {
+        transform: scale(1.05);
+        background: linear-gradient(135deg, #9b30ff, #5e11a8);
+      }
+
+      body.light-mode .top-nav {
+        background: rgba(138, 138, 138, 0.2);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+      }
+
       .toc-panel {
         width: var(--sidebar-width);
         min-width: var(--sidebar-width);
@@ -103,9 +172,11 @@
       .markdown-body {
         flex: 1;
         padding: 2rem 1.5rem;
-        max-width: 80%;
+        max-width: 90%;
         overflow-wrap: break-word;
-        margin-left: 200px;
+        margin-left: 30px;
+        background-color: inherit;
+        color: inherit;
       }
 
       ::selection {
@@ -229,6 +300,7 @@
       .presenter-mode .info-toggle,
       .presenter-mode .load-md-toggle,
       .presenter-mode .file-info,
+      .presenter-mode .top-nav,
       .presenter-mode #tocModal {
         display: none !important;
       }
@@ -477,6 +549,12 @@
       .drop-zone.dragover {
         background: rgba(138, 43, 226, 0.1);
       }
+
+      @media (max-width: 768px) {
+        .top-nav-btns .top-nav-btn:not(:nth-child(2)):not(:nth-child(3)) {
+          display: none;
+        }
+      }
     </style>
   </head>
 
@@ -501,7 +579,26 @@
     >
       Section 0 / 0
     </div>
-    <button class="fancy-icon-btn info-toggle" onclick="toggleInfo()">ℹ️ Info</button>
+    <!-- <button class="fancy-icon-btn info-toggle" onclick="toggleInfo()">ℹ️ Info</button> -->
+    <nav class="top-nav">
+      <!-- mdppt Logo -->
+      <img
+        src="./logo-removebg.png"
+        alt="mdppt Logo"
+        style="height: 50px; width: auto; margin-right: auto"
+      />
+
+      <div class="top-nav-btns">
+        <button class="top-nav-btn" onclick="toggleSidebar()">☰ TOC</button>
+        <button class="top-nav-btn" onclick="toggleTheme()">🌓 Theme</button>
+        <button class="top-nav-btn" onclick="toggleInfo()">ℹ️ Info</button>
+        <button class="top-nav-btn" onclick="toggleLoadModal()">📂 Load Markdown</button>
+      </div>
+
+      <a href="https://github.com/lakshygupta/markdown-presenter" target="_blank">
+        <img src="./social.png" alt="GitHub Logo" style="height: 40px; width: auto" />
+      </a>
+    </nav>
 
     <div id="infoModal" onclick="toggleInfo()">
       <div id="infoModalContent" onclick="event.stopPropagation()">
@@ -534,9 +631,9 @@
       </div>
     </div>
 
-    <button class="fancy-icon-btn load-md-toggle" onclick="toggleLoadModal()">
+    <!-- <button class="fancy-icon-btn load-md-toggle" onclick="toggleLoadModal()">
       📂 Load Markdown
-    </button>
+    </button> -->
 
     <div id="loadModal" onclick="toggleLoadModal()">
       <div id="loadModalContent" onclick="event.stopPropagation()">
@@ -613,8 +710,8 @@
       </div>
     </div>
 
-    <button class="fancy-icon-btn sidebar-toggle" onclick="toggleSidebar()">☰ TOC</button>
-    <button class="fancy-icon-btn theme-toggle" onclick="toggleTheme()">🌓 Theme</button>
+    <!-- <button class="fancy-icon-btn sidebar-toggle" onclick="toggleSidebar()">☰ TOC</button>
+    <button class="fancy-icon-btn theme-toggle" onclick="toggleTheme()">🌓 Theme</button> -->
     <!-- <aside id="toc" class="toc-panel"></aside> -->
     <div id="tocModal" onclick="toggleSidebar()">
       <div id="tocModalContent" onclick="event.stopPropagation()">
@@ -628,7 +725,7 @@
     <div id="logo-placeholder">
       <img src="logo-removebg.png" alt="Markdown Logo" />
     </div>
-    <div id="fileInfo" class="file-info"></div>
+    <!-- <div id="fileInfo" class="file-info"></div> -->
 
     <main class="markdown-body" id="viewer"></main>
 
@@ -1001,6 +1098,13 @@
       function togglePresenterMode() {
         presenterMode = !presenterMode;
         document.body.classList.toggle("presenter-mode", presenterMode);
+        const root = document.documentElement;
+        if (presenterMode) {
+          root.style.setProperty("--top-nav-height", "0px"); // Remove top-nav-height in presenter mode
+        } else {
+          root.style.setProperty("--top-nav-height", "60px"); // Restore top-nav-height when not in presenter mode
+        }
+
         if (presenterMode) {
           if (!document.querySelector(".thank-you-slide")) {
             const thankYou = document.createElement("section");
